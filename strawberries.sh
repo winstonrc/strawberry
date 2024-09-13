@@ -1,15 +1,48 @@
 #!/bin/bash
 
-input=$1
+debug=false
+input=""
+num_iterations=2
+angle=0
+
+usage() {
+    echo "Usage: $0 [options] <input_file>"
+    echo "Options:"
+    echo "  -d, --debug    Enable debug mode"
+    exit 1
+}
+
+# Process args
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -d|--debug)
+            debug=true
+            shift
+            ;;
+        -*)
+            echo "Invalid option: $1" >&2
+            usage
+            ;;
+        *)
+            if [ -z "$input" ]; then
+                input="$1"
+            else
+                echo "Error: Too many arguments." >&2
+                usage
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [ -z "$input" ]; then
+    echo "Error: A picture input file must be provided." >&2
+    usage
+fi
+
 input_without_extension="${input%.*}"
 extension=".${input##*.}"
 output="${input_without_extension}-compressed${extension}"
-# Size savings max out around 6 (5 iterations), but the color changes slightly.
-# The color change is subjectively nice.
-# Simply rotating 360 degrees keeps the color close enough.
-num_iterations=2
-angle=0
-# output_file="${input_without_extension}_sizes.txt"
 
 bytes_to_megabytes() {
     local bytes=$1
@@ -18,26 +51,37 @@ bytes_to_megabytes() {
 
 input_size=$(stat -f%z "$input")
 input_size_mb=$(bytes_to_megabytes "$input_size")
-# echo "$input_size" >> "$output_file"
+
+if [ "$debug" = true ]; then
+    output_file="${input_without_extension}_sizes.txt"
+    echo "$input_size" > "$output_file"
+fi
 
 sips -r 90 "$input" --out "$output" &> /dev/null
 angle=$((angle+90))
 
 for ((i=1; i<=num_iterations; i++))
 do
-  sips -r 90 "$output" --out "$output" &> /dev/null
-  angle=$((angle+90))
-
-  if [[ $angle -eq 360 ]]; then
-    angle=0
-  fi
+    sips -r 90 "$output" --out "$output" &> /dev/null
+    angle=$((angle+90))
+    if [[ $angle -eq 360 ]]; then
+        angle=0
+    fi
+    # Write size to file
+    if [ "$debug" = true ]; then
+        current_size=$(stat -f%z "$output")
+        echo "$current_size" >> "$output_file"
+    fi
 done
 
 sips -r $((360 - angle)) "$output" --out "$output" &> /dev/null
 
 output_size=$(stat -f%z "$output")
 output_size_mb=$(bytes_to_megabytes "$output_size")
-# echo "$output_size" >> "$output_file"
+
+if [ "$debug" = true ]; then
+    echo "$output_size" >> "$output_file"
+fi
 
 size_saved=$((input_size - output_size))
 size_saved_mb=$(bytes_to_megabytes "$size_saved")
