@@ -106,6 +106,9 @@ fi
 size_saved=$((input_size - output_size))
 size_saved_mb=$(bytes_to_megabytes "$size_saved")
 
+# Overwrite original input once the output has completed
+mv $output $input
+
 echo "Input size: $input_size_mb MB"
 echo "Output size: $output_size_mb MB"
 echo "Diff: $size_saved_mb MB"
