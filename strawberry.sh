@@ -5,6 +5,13 @@ input=""
 num_iterations=2
 angle=0
 
+show_help() {
+    echo "Usage: ./strawberry.sh [options] <input_file>"
+    echo "Options:"
+    echo "  -d, --debug    Enable debug mode"
+    echo "  -h, --help     Display this help message"
+}
+
 usage() {
     echo "Usage: $0 [options] <input_file>"
     echo "Options:"
@@ -12,26 +19,39 @@ usage() {
     exit 1
 }
 
-# Process args
+# Check if any arguments are passed
+if [ $# -eq 0 ]; then
+    echo "No arguments provided."
+    show_help
+    exit 1
+fi
+
+# Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -d|--debug)
             debug=true
             shift
             ;;
-        -*)
-            echo "Invalid option: $1" >&2
+        -h|--help)
+        usage
+        exit 0
+        ;;
+    -*)
+        echo "Invalid option: $1" >&2
+        usage
+        exit 1
+        ;;
+    *)
+        if [ -z "$input" ]; then
+            input="$1"
+        else
+            echo "Error: Too many arguments." >&2
             usage
-            ;;
-        *)
-            if [ -z "$input" ]; then
-                input="$1"
-            else
-                echo "Error: Too many arguments." >&2
-                usage
-            fi
-            shift
-            ;;
+            exit 1
+        fi
+        shift
+        ;;
     esac
 done
 
